@@ -2,8 +2,6 @@ package prompter;
 
 import java.awt.AWTEvent;
 import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GraphicsConfiguration;
@@ -13,21 +11,23 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
 import java.io.File;
-import java.io.FileReader;
+import java.io.IOException;
+import java.net.URL;
+import javax.swing.JEditorPane;
 import javax.swing.JFrame;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
 
 public class Prompter extends JFrame {
 
-    private static class PrompterText extends JTextArea {
+    private static class PrompterText extends JEditorPane {
 
         private boolean reverse = true;
         private int scrollIncrement = 2;
 
         public PrompterText(int scrollIncrement) {
+            setEditable(false);
             this.scrollIncrement = scrollIncrement;
             this.enableEvents(AWTEvent.KEY_EVENT_MASK);
         }
@@ -44,7 +44,6 @@ public class Prompter extends JFrame {
             if (reverse) {
                 at.concatenate(new AffineTransform(-1, 0, 0, 1, 0, 0));
                 at.concatenate(AffineTransform.getTranslateInstance(-getWidth(), 0));
-
             }
             g2d.setTransform(at);
             super.paint(g);
@@ -64,30 +63,30 @@ public class Prompter extends JFrame {
                 }
             }
             if (ev.getID() == MouseEvent.MOUSE_CLICKED) {
-                MouseEvent me = (MouseEvent)ev;
+                MouseEvent me = (MouseEvent) ev;
                 if (me.getButton() == MouseEvent.BUTTON3) {
                     reverse();
                 }
             }
         }
-
     }
 
-    private JTextArea jta;
-    private JScrollPane jscroll;
+    private final JEditorPane jta;
+    private final JScrollPane jscroll;
 
-    public Prompter(String text, int fontSize, int scrollIncrement) {
+    public Prompter(URL source, int scrollIncrement) {
         //setAlwaysOnTop(true);
         //setUndecorated(true);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         jta = new PrompterText(scrollIncrement);
-        jta.setForeground(Color.WHITE);
-        jta.setBackground(Color.BLACK);
-        jta.setText(text);
-        jta.setLineWrap(true);
-        jta.setWrapStyleWord(true);
-        jta.setFont(new Font("Sans", Font.BOLD, fontSize));
+
+        try {
+            jta.setPage(source);
+        } catch (IOException ex) {
+            System.err.println("Failed to open URL " + source);
+            System.exit(1);
+        }
         jta.setCaretPosition(0);
         jta.setAutoscrolls(true);
         jscroll = new JScrollPane(jta);
@@ -98,9 +97,7 @@ public class Prompter extends JFrame {
         jscroll.setVerticalScrollBarPolicy(
                 ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 
-        setBounds(0, 0, 1280, 720);
         setVisible(true);
-
     }
 
     @Override
@@ -110,39 +107,27 @@ public class Prompter extends JFrame {
 
         GraphicsConfiguration gc = getGraphicsConfiguration();
         Rectangle r = gc.getBounds();
-        setBounds(r); // do this later!
-
+        setBounds(r);
     }
 
     public static void main(String[] args) throws Throwable {
         if (args.length == 0) {
-            System.err.println("Usage: java -jar prompter.jar <file-to-display> [font-size] [scroll-increment]");
+            System.err.println("Usage: java -jar prompter.jar <file-to-display> [scroll-increment]");
             System.exit(1);
         }
 
         File f = new File(args[0]);
-        long size = f.length();
-        FileReader fr = new FileReader(f);
-        char[] buffer = new char[(int) ((size * 12) / 10)];
-
-        size = fr.read(buffer);
-        final String text = new String(buffer, 0, (int) size);
-
-        int fs = 64;
-        if (args.length >= 2) {
-            fs = Integer.parseInt(args[1]);
-        }
-        final int fontSize = fs;
+        final URL pageURL = f.getAbsoluteFile().toURI().toURL();
 
         int si = 4;
-        if (args.length >= 3) {
-            si = Integer.parseInt(args[2]);
+        if (args.length >= 2) {
+            si = Integer.parseInt(args[1]);
         }
         final int scrollIncrement = si;
 
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-                new Prompter(text, fontSize, scrollIncrement);
+                new Prompter(pageURL, scrollIncrement);
             }
         });
     }
