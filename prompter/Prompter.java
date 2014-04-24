@@ -1,5 +1,6 @@
 package prompter;
 
+import java.awt.AWTEvent;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
@@ -8,6 +9,7 @@ import java.awt.Graphics2D;
 import java.awt.GraphicsConfiguration;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
+import java.awt.event.KeyEvent;
 import java.awt.geom.AffineTransform;
 import java.io.File;
 import java.io.FileReader;
@@ -20,35 +22,52 @@ import javax.swing.SwingUtilities;
 public class Prompter extends JFrame {
 
     private static class PrompterText extends JTextArea {
+
+        private boolean reverse = true;
         private int scrollIncrement = 2;
-        
+
         public PrompterText(int scrollIncrement) {
             this.scrollIncrement = scrollIncrement;
+            this.enableEvents(AWTEvent.KEY_EVENT_MASK);
         }
-        
+
         @Override
         public int getScrollableUnitIncrement(Rectangle r, int orient, int direction) {
             return scrollIncrement;
         }
-        
+
         @Override
         public void paint(Graphics g) {
             Graphics2D g2d = (Graphics2D) g;
             AffineTransform at = new AffineTransform();
-            at.concatenate(new AffineTransform(-1, 0, 0, 1, 0, 0));
-            at.concatenate(AffineTransform.getTranslateInstance(-getWidth(), 0));
+            if (reverse) {
+                at.concatenate(new AffineTransform(-1, 0, 0, 1, 0, 0));
+                at.concatenate(AffineTransform.getTranslateInstance(-getWidth(), 0));
 
+            }
             g2d.setTransform(at);
             super.paint(g);
         }
+
+        @Override
+        protected void processEvent(AWTEvent ev) {
+            if (ev.getID() == KeyEvent.KEY_TYPED) {
+                KeyEvent ke = (KeyEvent) ev;
+                if (Character.toLowerCase(ke.getKeyChar()) == 'r') {
+                    reverse = !reverse;
+                    repaint();
+                }
+            }
+        }
+
     }
 
     private JTextArea jta;
     private JScrollPane jscroll;
 
     public Prompter(String text, int fontSize, int scrollIncrement) {
-        setAlwaysOnTop(true);
-        setUndecorated(true);
+        //setAlwaysOnTop(true);
+        //setUndecorated(true);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         jta = new PrompterText(scrollIncrement);
@@ -89,7 +108,7 @@ public class Prompter extends JFrame {
             System.err.println("Usage: java -jar prompter.jar <file-to-display> [font-size] [scroll-increment]");
             System.exit(1);
         }
-        
+
         File f = new File(args[0]);
         long size = f.length();
         FileReader fr = new FileReader(f);
@@ -103,13 +122,13 @@ public class Prompter extends JFrame {
             fs = Integer.parseInt(args[1]);
         }
         final int fontSize = fs;
-        
+
         int si = 4;
         if (args.length >= 3) {
             si = Integer.parseInt(args[2]);
         }
         final int scrollIncrement = si;
-        
+
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 new Prompter(text, fontSize, scrollIncrement);
