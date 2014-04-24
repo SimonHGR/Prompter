@@ -10,6 +10,7 @@ import java.awt.GraphicsConfiguration;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
 import java.io.File;
 import java.io.FileReader;
@@ -49,13 +50,23 @@ public class Prompter extends JFrame {
             super.paint(g);
         }
 
+        private void reverse() {
+            reverse = !reverse;
+            repaint();
+        }
+
         @Override
         protected void processEvent(AWTEvent ev) {
             if (ev.getID() == KeyEvent.KEY_TYPED) {
                 KeyEvent ke = (KeyEvent) ev;
                 if (Character.toLowerCase(ke.getKeyChar()) == 'r') {
-                    reverse = !reverse;
-                    repaint();
+                    reverse();
+                }
+            }
+            if (ev.getID() == MouseEvent.MOUSE_CLICKED) {
+                MouseEvent me = (MouseEvent)ev;
+                if (me.getButton() == MouseEvent.BUTTON3) {
+                    reverse();
                 }
             }
         }
